@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { google } = require('googleapis');
-const { GoogleAuth } = require('googleapis').auth;
+const GoogleAuth = require('google-auth-library').GoogleAuth;
 
 // API Keys and Configuration
 const BOUNCER_API_KEY = '9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan';
