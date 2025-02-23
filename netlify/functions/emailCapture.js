@@ -19,9 +19,8 @@ const SHEET_NAME = 'Sheet1'; // Change if your sheet tab name is different
 // Initialize Google Sheets API client
 // (Ensure that GOOGLE_SERVICE_ACCOUNT_CREDENTIALS is set in your Netlify environment variables)
 const { google } = require('googleapis');
-const { GoogleAuth } = require('googleapis').auth;
 
-const auth = new GoogleAuth({
+const auth = new google.auth.GoogleAuth({
   credentials: serviceAccount,
   scopes: ['https://www.googleapis.com/auth/spreadsheets']
 });
