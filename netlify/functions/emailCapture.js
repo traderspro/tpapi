@@ -18,12 +18,13 @@ const SHEET_NAME = 'Sheet1'; // Change if your sheet tab name is different
 
 // Initialize Google Sheets API client
 // (Ensure that GOOGLE_SERVICE_ACCOUNT_CREDENTIALS is set in your Netlify environment variables)
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS);
-const auth = new google.auth.GoogleAuth({
+const { google } = require('googleapis');
+const { GoogleAuth } = require('googleapis').auth;
+
+const auth = new GoogleAuth({
   credentials: serviceAccount,
   scopes: ['https://www.googleapis.com/auth/spreadsheets']
 });
-const sheets = google.sheets({ version: 'v4', auth });
 
 // Helper function: Append a new row based on the email verification category
 async function appendRow(email, category) {
