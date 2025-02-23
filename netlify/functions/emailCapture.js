@@ -1,31 +1,26 @@
-// Debug: Check if the environment variable is set
-if (!process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS) {
-  throw new Error("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable is not set!");
-}
-console.log("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS length:", process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS.length);
-
-const { google } = require('googleapis');
-
 const fetch = require('node-fetch');
+const { google } = require('googleapis');
+const { GoogleAuth } = require('googleapis').auth;
 
-// API keys and configuration
+// API Keys and Configuration
 const BOUNCER_API_KEY = '9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan';
 const ITERABLE_API_KEY = '50bbcd361434491eb1208156904fb76e';
-const ITERABLE_LIST_ID = 'TP';
+const ITERABLE_LIST_ID = 'TP'; // Iterable email list
+const PTR_WEBHOOK_URL = 'https://pro.ptrtrk.com/RpeLOf?utm_source=tpnew&email=';
 
-// Google Sheets configuration
+// Google Sheets Configuration
 const SPREADSHEET_ID = '1syVupXmoT69HFoKtNq_d68hDhP-l2WGQEETc172WPfY';
-const SHEET_NAME = 'Sheet1';
+const SHEET_NAME = 'Sheet1'; // Update if your sheet name is different
 
 // Initialize Google Sheets API client
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS);
-const auth = new google.auth.GoogleAuth({
+const auth = new GoogleAuth({
   credentials: serviceAccount,
   scopes: ['https://www.googleapis.com/auth/spreadsheets']
 });
 const sheets = google.sheets({ version: 'v4', auth });
 
-// Helper function: Append a new row based on the email verification category
+// Helper function to append email to the correct Google Sheets column
 async function appendRow(email, category) {
   const row = [
     category === 'deliverable' ? email : '',
@@ -41,17 +36,18 @@ async function appendRow(email, category) {
   });
 }
 
+// Main API handler function
 exports.handler = async function(event, context) {
   try {
+    // ✅ Step 1: Get the email from request
     const email = event.queryStringParameters && event.queryStringParameters.email;
     if (!email) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Missing email parameter' })
-      };
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing email parameter' }) };
     }
 
-    // 1. Verify email using Bouncer API
+    console.log(`Verifying email: ${email}`);
+
+    // ✅ Step 2: Verify the email with Bouncer API
     const bouncerRes = await fetch(`https://api.usebouncer.com/v2/email?email=${encodeURIComponent(email)}`, {
       method: 'GET',
       headers: {
@@ -62,33 +58,37 @@ exports.handler = async function(event, context) {
     const bouncerData = await bouncerRes.json();
     const category = bouncerData.result || 'unknown';
 
-    // 2. Add email to Iterable list
+    console.log(`Email verification result: ${category}`);
+
+    // If the email is undeliverable, stop processing
+    if (category === 'undeliverable') {
+      console.log(`Email is undeliverable, stopping process.`);
+      return { statusCode: 400, body: JSON.stringify({ error: 'Email is undeliverable' }) };
+    }
+
+    // ✅ Step 3: Add the email to Iterable
+    console.log(`Adding email to Iterable list: ${email}`);
     await fetch('https://api.iterable.com/api/users/subscribe', {
       method: 'POST',
       headers: {
         'Api-Key': ITERABLE_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        email: email,
-        listId: ITERABLE_LIST_ID
-      })
+      body: JSON.stringify({ email: email, listId: ITERABLE_LIST_ID })
     });
 
-    // 3. Send email to PTR Main List
-    await fetch(`https://pro.ptrtrk.com/RpeLOf?utm_source=tpnew&email=${encodeURIComponent(email)}`);
+    // ✅ Step 4: Send the email to PTR Webhook
+    console.log(`Sending email to PTR: ${email}`);
+    await fetch(`${PTR_WEBHOOK_URL}${encodeURIComponent(email)}`);
 
-    // 4. Append email to Google Sheets
+    // ✅ Step 5: Store the email in Google Sheets
+    console.log(`Appending email to Google Sheets: ${email} under ${category}`);
     await appendRow(email, category);
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, category: category })
-    };
+    // ✅ Step 6: Return success response
+    return { statusCode: 200, body: JSON.stringify({ success: true, category: category }) };
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message })
-    };
+    console.error(`Error processing email: ${error.message}`);
+    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
 };
