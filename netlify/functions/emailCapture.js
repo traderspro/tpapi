@@ -52,16 +52,18 @@ exports.handler = async function(event, context) {
 
     // ✅ Step 2: Verify the email with Bouncer API
     const bouncerRes = await fetch(`https://api.usebouncer.com/v2/email?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${BOUNCER_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const bouncerData = await bouncerRes.json();
-    const category = bouncerData.result || 'unknown';
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${BOUNCER_API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
 
-    console.log(`Email verification result: ${category}`);
+const bouncerData = await bouncerRes.json();
+console.log("Full Bouncer API Response:", JSON.stringify(bouncerData, null, 2));
+
+const category = bouncerData.result || 'unknown';
+console.log(`Email Category Received: ${category}`);
 
     // If the email is undeliverable, stop processing
     if (category === 'undeliverable') {
