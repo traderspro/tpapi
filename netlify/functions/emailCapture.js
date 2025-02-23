@@ -4,26 +4,26 @@ if (!process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS) {
 }
 console.log("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS length:", process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS.length);
 
-const fetch = require('node-fetch');
 const { google } = require('googleapis');
+
+const fetch = require('node-fetch');
 
 // API keys and configuration
 const BOUNCER_API_KEY = '9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan';
 const ITERABLE_API_KEY = '50bbcd361434491eb1208156904fb76e';
-const ITERABLE_LIST_ID = 'TP'; // your Iterable list identifier
+const ITERABLE_LIST_ID = 'TP';
 
 // Google Sheets configuration
 const SPREADSHEET_ID = '1syVupXmoT69HFoKtNq_d68hDhP-l2WGQEETc172WPfY';
-const SHEET_NAME = 'Sheet1'; // Change if your sheet tab name is different
+const SHEET_NAME = 'Sheet1';
 
 // Initialize Google Sheets API client
-// (Ensure that GOOGLE_SERVICE_ACCOUNT_CREDENTIALS is set in your Netlify environment variables)
-const { google } = require('googleapis');
-
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS);
 const auth = new google.auth.GoogleAuth({
   credentials: serviceAccount,
   scopes: ['https://www.googleapis.com/auth/spreadsheets']
 });
+const sheets = google.sheets({ version: 'v4', auth });
 
 // Helper function: Append a new row based on the email verification category
 async function appendRow(email, category) {
