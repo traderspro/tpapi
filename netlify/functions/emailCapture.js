@@ -22,18 +22,21 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // Helper function to append email to the correct Google Sheets column
 async function appendRow(email, category) {
-  const row = [
-    category === 'deliverable' ? email : '',
-    category === 'risky' ? email : '',
-    category === 'undeliverable' ? email : '',
-    category === 'unknown' ? email : ''
-  ];
+  const SHEET_NAME = category.charAt(0).toUpperCase() + category.slice(1); // Ensure first letter is capitalized
+
+  if (!['Deliverable', 'Risky', 'Undeliverable', 'Unknown'].includes(SHEET_NAME)) {
+    console.error(`Invalid category: ${SHEET_NAME}`);
+    return;
+  }
+
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${SHEET_NAME}'!A1:D`,
+    range: `'${SHEET_NAME}'!A1:A`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [row] }
+    requestBody: { values: [[email]] }
   });
+
+  console.log(`Email added to ${SHEET_NAME} sheet.`);
 }
 
 // Main API handler function
