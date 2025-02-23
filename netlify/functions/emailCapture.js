@@ -1,3 +1,9 @@
+// Debug: Check if the environment variable is set
+if (!process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS) {
+  throw new Error("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable is not set!");
+}
+console.log("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS length:", process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS.length);
+
 const fetch = require('node-fetch');
 const { google } = require('googleapis');
 
