@@ -10,7 +10,7 @@ const PTR_WEBHOOK_URL = 'https://pro.ptrtrk.com/RpeLOf?utm_source=tpnew&email=';
 
 // Google Sheets Configuration
 const SPREADSHEET_ID = '1syVupXmoT69HFoKtNq_d68hDhP-l2WGQEETc172WPfY';
-const SHEET_NAME = 'Sheet1'; // Update if your sheet name is different
+const SHEET_NAME = 'IterableAPI'; // Match the exact Google Sheet name
 
 // Initialize Google Sheets API client
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS);
@@ -30,7 +30,7 @@ async function appendRow(email, category) {
   ];
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:D`,
+    range: `'${SHEET_NAME}'!A1:D`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [row] }
   });
