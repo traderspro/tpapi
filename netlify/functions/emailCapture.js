@@ -84,8 +84,11 @@ exports.handler = async function(event, context) {
 });
 
 const bouncerData = await bouncerRes.json();
-console.log("Bouncer API Response:", JSON.stringify(bouncerData, null, 2));
+console.log("Bouncer API Full Response:", JSON.stringify(bouncerData, null, 2));
+console.log(`Bouncer Result: ${bouncerData.result || "No result"}`);
 console.log(`Bouncer Reason: ${bouncerData.reason || "No reason provided"}`);
+console.log(`Disposable: ${bouncerData.disposable || "Unknown"}`);
+console.log(`Role Address: ${bouncerData.role || "Unknown"}`);
 
 const action = bouncerData.result || 'unknown';
 console.log(`Email Category Received: ${action}`);
