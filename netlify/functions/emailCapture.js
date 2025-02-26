@@ -81,7 +81,7 @@ exports.handler = async function(event, context) {
   method: 'GET',
   headers: {
     'Authorization': `Bearer 9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan`,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json' 
   }
 });
 
