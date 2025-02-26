@@ -119,7 +119,13 @@ exports.handler = async function(event, context) {
     await sendToWebhooks(email);
 
     // ✅ Step 7: Return success response
-    return { statusCode: 200, body: JSON.stringify({ success: true, action: action }) };
+    const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&leadsource=${encodeURIComponent(leadsource)}`;
+return {
+  statusCode: 302, // HTTP Redirect
+  headers: { "Location": redirectUrl },
+  body: JSON.stringify({ success: true, action: action })
+};
+
   } catch (error) {
     console.error(`Error processing email: ${error.message}`);
     return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
