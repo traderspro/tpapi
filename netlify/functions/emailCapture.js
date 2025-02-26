@@ -107,13 +107,19 @@ exports.handler = async function(event, context) {
     // ✅ Step 5: Add the email to Iterable
     console.log(`Adding email to Iterable list: ${email}`);
     await fetch('https://api.iterable.com/api/users/subscribe', {
-      method: 'POST',
-      headers: {
-        'Api-Key': ITERABLE_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email: email, listId: ITERABLE_LIST_ID })
-    });
+  method: 'POST',
+  headers: {
+    'Api-Key': ITERABLE_API_KEY,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    email: email,
+    listId: ITERABLE_LIST_ID,
+    dataFields: {
+      lead_source: leadsource  // Pass leadsource as a custom field
+    }
+  })
+});
 
     // ✅ Step 6: Send the email to both PTR and TSI Webhooks
     await sendToWebhooks(email);
