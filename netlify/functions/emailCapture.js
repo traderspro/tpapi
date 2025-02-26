@@ -85,6 +85,7 @@ exports.handler = async function(event, context) {
 
 const bouncerData = await bouncerRes.json();
 console.log("Bouncer API Response:", JSON.stringify(bouncerData, null, 2));
+console.log(`Bouncer Reason: ${bouncerData.reason || "No reason provided"}`);
 
 const action = bouncerData.result || 'unknown';
 console.log(`Email Category Received: ${action}`);
