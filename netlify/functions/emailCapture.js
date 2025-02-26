@@ -91,7 +91,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized - Invalid API Key" }) };
     }
 
-    const action = bouncerData.result || 'unknown';
+    const action = bouncerData.status || 'unknown';
     console.log(`Email Category Received: ${action}`);
 
     // ✅ Step 3: Store the email in Google Sheets (all emails are stored)
