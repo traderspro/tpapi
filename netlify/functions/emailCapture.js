@@ -3,9 +3,9 @@ const { google } = require('googleapis');
 const GoogleAuth = require('google-auth-library').GoogleAuth;
 
 // API Keys and Configuration
-const BOUNCER_API_KEY = '9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan';
+const BOUNCER_API_KEY = process.env.BOUNCER_API_KEY; // Correct API key header
 const ITERABLE_API_KEY = '50bbcd361434491eb1208156904fb76e';
-const ITERABLE_LIST_ID = 'TP'; // Iterable email list
+const ITERABLE_LIST_ID = 'TP';
 
 // Webhook URLs
 const PTR_WEBHOOK_URL = 'https://pro.ptrtrk.com/RpeLOf?utm_source=tpnew&email=';
@@ -24,7 +24,7 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // Function to append data to the correct sheet
 async function appendRow(email, action, source) {
-  const SHEET_NAME = action.charAt(0).toUpperCase() + action.slice(1); // Capitalize first letter
+  const SHEET_NAME = action.charAt(0).toUpperCase() + action.slice(1);
 
   if (!['Deliverable', 'Risky', 'Undeliverable', 'Unknown'].includes(SHEET_NAME)) {
     console.error(`Invalid category: ${SHEET_NAME}`);
@@ -35,7 +35,7 @@ async function appendRow(email, action, source) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${SHEET_NAME}'!A1:C`, // Writing to Email (A), Action (B), Source (C)
+    range: `'${SHEET_NAME}'!A1:C`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: rowData }
   });
@@ -73,27 +73,26 @@ exports.handler = async function(event, context) {
     }
 
     console.log(`Verifying email: ${email} | Lead Source: ${leadsource}`);
+    console.log(`Using Bouncer API Key: ${BOUNCER_API_KEY ? "Set" : "Not Set"}`);
 
-    // ✅ Step 2: Verify the email with Bouncer API
-   console.log(`Using Bouncer API Key: "${process.env.BOUNCER_API_KEY}"`);
-  
-    const bouncerRes = await fetch(`https://api.usebouncer.com/v2/email?email=${encodeURIComponent(email)}`, {
-  method: 'GET',
-  headers: {
-    'Authorization': `Bearer 9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan`,
-    'Content-Type': 'application/json' 
-  }
-});
+    // ✅ Step 2: Verify the email with Bouncer API (UPDATED ENDPOINT & HEADERS)
+    const bouncerRes = await fetch(`https://api.usebouncer.com/v1.1/email/verify?email=${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': BOUNCER_API_KEY, // ✅ Updated Header
+        'Content-Type': 'application/json'
+      }
+    });
+    const bouncerData = await bouncerRes.json();
+    console.log("Bouncer API Full Response:", JSON.stringify(bouncerData, null, 2));
 
-const bouncerData = await bouncerRes.json();
-console.log("Bouncer API Full Response:", JSON.stringify(bouncerData, null, 2));
-console.log(`Bouncer Result: ${bouncerData.result || "No result"}`);
-console.log(`Bouncer Reason: ${bouncerData.reason || "No reason provided"}`);
-console.log(`Disposable: ${bouncerData.disposable || "Unknown"}`);
-console.log(`Role Address: ${bouncerData.role || "Unknown"}`);
+    if (bouncerData.status === 401) {
+      console.error("Bouncer API returned Unauthorized (401). Check your API key.");
+      return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized - Invalid API Key" }) };
+    }
 
-const action = bouncerData.result || 'unknown';
-console.log(`Email Category Received: ${action}`);
+    const action = bouncerData.result || 'unknown';
+    console.log(`Email Category Received: ${action}`);
 
     // ✅ Step 3: Store the email in Google Sheets (all emails are stored)
     console.log(`Appending email to Google Sheets: ${email} | Action: ${action} | Source: ${leadsource}`);
