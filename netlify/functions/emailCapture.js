@@ -76,17 +76,18 @@ exports.handler = async function(event, context) {
 
     // ✅ Step 2: Verify the email with Bouncer API
     const bouncerRes = await fetch(`https://api.usebouncer.com/v2/email?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${BOUNCER_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const bouncerData = await bouncerRes.json();
-    console.log("Bouncer API Response:", JSON.stringify(bouncerData, null, 2));
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${BOUNCER_API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
 
-    const action = bouncerData.result || 'unknown';
-    console.log(`Email Category Received: ${action}`);
+const bouncerData = await bouncerRes.json();
+console.log("Bouncer API Response:", JSON.stringify(bouncerData, null, 2));
+
+const action = bouncerData.result || 'unknown';
+console.log(`Email Category Received: ${action}`);
 
     // ✅ Step 3: Store the email in Google Sheets (all emails are stored)
     console.log(`Appending email to Google Sheets: ${email} | Action: ${action} | Source: ${leadsource}`);
