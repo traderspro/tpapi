@@ -106,7 +106,7 @@ exports.handler = async function(event, context) {
 
     // ✅ Step 5: Add the email to Iterable
     console.log(`Adding email to Iterable list: ${email}`);
-    await fetch('https://api.iterable.com/api/users/subscribe', {
+    const iterableUpdate = await fetch('https://api.iterable.com/api/users/update', {
   method: 'POST',
   headers: {
     'Api-Key': ITERABLE_API_KEY,
@@ -114,12 +114,36 @@ exports.handler = async function(event, context) {
   },
   body: JSON.stringify({
     email: email,
-    listId: 1478930,  // ✅ Correct List ID
     dataFields: {
-      source: leadsource  // ✅ Changed 'lead_source' to 'source'
+      source: leadsource  // ✅ Ensure 'source' is updated even if the user exists
     }
   })
 });
+
+const iterableUpdateData = await iterableUpdate.json();
+console.log("Iterable Update Response:", JSON.stringify(iterableUpdateData, null, 2));
+
+// If the user is not in Iterable, subscribe them
+if (iterableUpdateData.code === "UserNotFound") {
+  console.log(`User not found in Iterable, subscribing: ${email}`);
+  const iterableSubscribe = await fetch('https://api.iterable.com/api/users/subscribe', {
+    method: 'POST',
+    headers: {
+      'Api-Key': ITERABLE_API_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email: email,
+      listId: 1478930,
+      dataFields: {
+        source: leadsource
+      }
+    })
+  });
+
+  const iterableSubscribeData = await iterableSubscribe.json();
+  console.log("Iterable Subscribe Response:", JSON.stringify(iterableSubscribeData, null, 2));
+}
 
     // ✅ Step 6: Send the email to both PTR and TSI Webhooks
     await sendToWebhooks(email);
