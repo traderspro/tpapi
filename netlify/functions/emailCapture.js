@@ -114,9 +114,9 @@ exports.handler = async function(event, context) {
   },
   body: JSON.stringify({
     email: email,
-    listId: ITERABLE_LIST_ID,
+    listId: 1478930,  // ✅ Correct List ID
     dataFields: {
-      lead_source: leadsource  // Pass leadsource as a custom field
+      source: leadsource  // ✅ Changed 'lead_source' to 'source'
     }
   })
 });
