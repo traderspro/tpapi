@@ -80,7 +80,7 @@ exports.handler = async function(event, context) {
     const bouncerRes = await fetch(`https://api.usebouncer.com/v2/email?email=${encodeURIComponent(email)}`, {
   method: 'GET',
   headers: {
-    'Authorization': `Bearer ${process.env.BOUNCER_API_KEY}`,
+    'Authorization': `Bearer 9CbCfpDobw6Patquus2OwCSXdIXDRuK82M9spUan`,
     'Content-Type': 'application/json'
   }
 });
