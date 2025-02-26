@@ -75,6 +75,8 @@ exports.handler = async function(event, context) {
     console.log(`Verifying email: ${email} | Lead Source: ${leadsource}`);
 
     // ✅ Step 2: Verify the email with Bouncer API
+   console.log(`Using Bouncer API Key: ${process.env.BOUNCER_API_KEY ? "Set" : "Not Set"}`);
+  
     const bouncerRes = await fetch(`https://api.usebouncer.com/v2/email?email=${encodeURIComponent(email)}`, {
   method: 'GET',
   headers: {
