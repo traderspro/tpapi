@@ -3,9 +3,9 @@ const { google } = require('googleapis');
 const GoogleAuth = require('google-auth-library').GoogleAuth;
 
 // API Keys and Configuration
-const BOUNCER_API_KEY = process.env.BOUNCER_API_KEY; // Correct API key header
+const BOUNCER_API_KEY = process.env.BOUNCER_API_KEY;
 const ITERABLE_API_KEY = '50bbcd361434491eb1208156904fb76e';
-const ITERABLE_LIST_ID = 'TP';
+const ITERABLE_LIST_ID = 1478930;  // Corrected to use the TP list ID
 
 // Webhook URLs
 const PTR_WEBHOOK_URL = 'https://pro.ptrtrk.com/RpeLOf?utm_source=tpnew&email=';
@@ -62,8 +62,8 @@ async function sendToWebhooks(email) {
 exports.handler = async function(event, context) {
   try {
     // ✅ Step 1: Get the email & leadsource from request
-    const email = event.queryStringParameters && event.queryStringParameters.email;
-    const leadsource = event.queryStringParameters && event.queryStringParameters.leadsource;
+    const email = event.queryStringParameters?.email;
+    const leadsource = event.queryStringParameters?.leadsource;
 
     if (!email) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing email parameter' }) };
@@ -75,11 +75,11 @@ exports.handler = async function(event, context) {
     console.log(`Verifying email: ${email} | Lead Source: ${leadsource}`);
     console.log(`Using Bouncer API Key: ${BOUNCER_API_KEY ? "Set" : "Not Set"}`);
 
-    // ✅ Step 2: Verify the email with Bouncer API (UPDATED ENDPOINT & HEADERS)
+    // ✅ Step 2: Verify the email with Bouncer API
     const bouncerRes = await fetch(`https://api.usebouncer.com/v1.1/email/verify?email=${encodeURIComponent(email)}`, {
       method: 'GET',
       headers: {
-        'x-api-key': BOUNCER_API_KEY, // ✅ Updated Header
+        'x-api-key': BOUNCER_API_KEY,
         'Content-Type': 'application/json'
       }
     });
@@ -94,7 +94,7 @@ exports.handler = async function(event, context) {
     const action = bouncerData.status || 'unknown';
     console.log(`Email Category Received: ${action}`);
 
-    // ✅ Step 3: Store the email in Google Sheets (all emails are stored)
+    // ✅ Step 3: Store the email in Google Sheets
     console.log(`Appending email to Google Sheets: ${email} | Action: ${action} | Source: ${leadsource}`);
     await appendRow(email, action, leadsource);
 
@@ -106,66 +106,67 @@ exports.handler = async function(event, context) {
 
     // ✅ Step 5: Add the email to Iterable
     console.log(`Adding email to Iterable list: ${email}`);
+
     // First, try updating the user in Iterable
-const iterableUpdate = await fetch("https://api.iterable.com/api/users/update", {
-  method: "POST",
-  headers: {
-    "Api-Key": iterableConfig.apiKey,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    email: email,
-    dataFields: { source: leadsource }
-  })
-});
+    const iterableUpdate = await fetch("https://api.iterable.com/api/users/update", {
+      method: "POST",
+      headers: {
+        "Api-Key": ITERABLE_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email,
+        dataFields: { source: leadsource }
+      })
+    });
 
-const updateData = await iterableUpdate.json();
-console.log("Iterable Update Response:", updateData);
+    const updateData = await iterableUpdate.json();
+    console.log("Iterable Update Response:", updateData);
 
-// If the user is not found, subscribe them
-if (updateData.code === "UserNotFound") {
-  console.log(`User not found, subscribing: ${email}`);
-  await fetch("https://api.iterable.com/api/users/subscribe", {
-    method: "POST",
-    headers: {
-      "Api-Key": iterableConfig.apiKey,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      email: email,
-      listId: iterableConfig.listId,
-      dataFields: { source: leadsource }
-    })
-  });
-}
-
-// Trigger Custom Event to Restart Workflow
-await fetch("https://api.iterable.com/api/events/track", {
-  method: "POST",
-  headers: {
-    "Api-Key": iterableConfig.apiKey,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    email: email,
-    eventName: "welcome_email_trigger",  // Custom event to restart workflow
-    dataFields: {
-      source: leadsource,
-      timestamp: new Date().toISOString()  // Ensure it's a fresh event
+    // If the user is not found, subscribe them
+    if (updateData.code === "UserNotFound") {
+      console.log(`User not found, subscribing: ${email}`);
+      await fetch("https://api.iterable.com/api/users/subscribe", {
+        method: "POST",
+        headers: {
+          "Api-Key": ITERABLE_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          listId: ITERABLE_LIST_ID,
+          dataFields: { source: leadsource }
+        })
+      });
     }
-  })
-});
 
-    // ✅ Step 6: Send the email to both PTR and TSI Webhooks
+    // ✅ Step 6: Trigger Custom Event to Restart Workflow
+    await fetch("https://api.iterable.com/api/events/track", {
+      method: "POST",
+      headers: {
+        "Api-Key": ITERABLE_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email,
+        eventName: "welcome_email_trigger",  // Custom event to restart workflow
+        dataFields: {
+          source: leadsource,
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
+
+    // ✅ Step 7: Send the email to both PTR and TSI Webhooks
     await sendToWebhooks(email);
 
-    // ✅ Step 7: Return success response
+    // ✅ Step 8: Redirect the user to the Free Reports page
     const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&leadsource=${encodeURIComponent(leadsource)}`;
-return {
-  statusCode: 302, // HTTP Redirect
-  headers: { "Location": redirectUrl },
-  body: JSON.stringify({ success: true, action: action })
-};
+    return {
+      statusCode: 302, // HTTP Redirect
+      headers: { "Location": redirectUrl },
+      body: JSON.stringify({ success: true, action: action })
+    };
 
   } catch (error) {
     console.error(`Error processing email: ${error.message}`);
