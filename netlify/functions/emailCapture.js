@@ -5,7 +5,7 @@ const GoogleAuth = require('google-auth-library').GoogleAuth;
 // API Keys and Configuration
 const BOUNCER_API_KEY = process.env.BOUNCER_API_KEY;
 const ITERABLE_API_KEY = '50bbcd361434491eb1208156904fb76e';
-const ITERABLE_LIST_ID = 1478930;  // Corrected to use the TP list ID
+const ITERABLE_LIST_ID = 1478930;  // TP List ID
 
 // Webhook URLs
 const PTR_WEBHOOK_URL = 'https://pro.ptrtrk.com/RpeLOf?utm_source=tpnew&email=';
