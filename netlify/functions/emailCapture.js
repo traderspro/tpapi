@@ -2,9 +2,9 @@ const fetch = require('node-fetch');
 const { google } = require('googleapis');
 const GoogleAuth = require('google-auth-library').GoogleAuth;
 
-// API Keys and Configuration
+// API Keys from Netlify Environment Variables
 const BOUNCER_API_KEY = process.env.BOUNCER_API_KEY;
-const ITERABLE_API_KEY = '50bbcd361434491eb1208156904fb76e';
+const ITERABLE_API_KEY = process.env.ITERABLE_API_KEY;
 const ITERABLE_LIST_ID = 1478930;  // TP List ID
 
 // Webhook URLs
@@ -14,6 +14,9 @@ const TSI_WEBHOOK_URL = 'https://pro.khmtrk01.com/ZmeHh5?email=';
 // Google Sheets Configuration
 const SPREADSHEET_ID = '1syVupXmoT69HFoKtNq_d68hDhP-l2WGQEETc172WPfY';
 
+// Allowed UTM Sources
+const VALID_UTM_SOURCES = ['GoogleAds', 'FacebookAds', 'Newsletter', 'TestSource'];
+
 // Initialize Google Sheets API client
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS);
 const auth = new GoogleAuth({
@@ -22,17 +25,15 @@ const auth = new GoogleAuth({
 });
 const sheets = google.sheets({ version: 'v4', auth });
 
-// Function to append data to the correct sheet
-async function appendRow(email, action, source) {
+// Function to append data to Google Sheets
+async function appendRow(email, action, utm_source) {
   const SHEET_NAME = action.charAt(0).toUpperCase() + action.slice(1);
-
   if (!['Deliverable', 'Risky', 'Undeliverable', 'Unknown'].includes(SHEET_NAME)) {
     console.error(`Invalid category: ${SHEET_NAME}`);
     return;
   }
 
-  const rowData = [[email, action, source]];
-
+  const rowData = [[email, action, utm_source]];
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${SHEET_NAME}'!A1:C`,
@@ -40,7 +41,7 @@ async function appendRow(email, action, source) {
     requestBody: { values: rowData }
   });
 
-  console.log(`Email added to ${SHEET_NAME} sheet with source: ${source}`);
+  console.log(`Email added to ${SHEET_NAME} sheet with UTM Source: ${utm_source}`);
 }
 
 // Function to send email to external lists
@@ -61,18 +62,29 @@ async function sendToWebhooks(email) {
 // Main API handler function
 exports.handler = async function(event, context) {
   try {
-    // ✅ Step 1: Get the email & leadsource from request
+    // ✅ Rate Limiting - Prevent Abuse
+    if (context.functionCount && context.functionCount > 5) {
+      console.warn("Too many requests from this IP.");
+      return { statusCode: 429, body: JSON.stringify({ error: "Too many requests, slow down." }) };
+    }
+
+    // ✅ Step 1: Get the email & utm_source from request
     const email = event.queryStringParameters?.email;
-    const leadsource = event.queryStringParameters?.leadsource;
+    const utm_source = event.queryStringParameters?.utm_source;
 
     if (!email) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing email parameter' }) };
     }
-    if (!leadsource) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing leadsource parameter' }) };
+    if (!utm_source) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing utm_source parameter' }) };
     }
 
-    console.log(`Verifying email: ${email} | Lead Source: ${leadsource}`);
+    // ✅ Validate UTM Source
+    if (!VALID_UTM_SOURCES.includes(utm_source)) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid utm_source value' }) };
+    }
+
+    console.log(`Verifying email: ${email} | UTM Source: ${utm_source}`);
     console.log(`Using Bouncer API Key: ${BOUNCER_API_KEY ? "Set" : "Not Set"}`);
 
     // ✅ Step 2: Verify the email with Bouncer API
@@ -95,8 +107,8 @@ exports.handler = async function(event, context) {
     console.log(`Email Category Received: ${action}`);
 
     // ✅ Step 3: Store the email in Google Sheets
-    console.log(`Appending email to Google Sheets: ${email} | Action: ${action} | Source: ${leadsource}`);
-    await appendRow(email, action, leadsource);
+    console.log(`Appending email to Google Sheets: ${email} | Action: ${action} | UTM Source: ${utm_source}`);
+    await appendRow(email, action, utm_source);
 
     // ✅ Step 4: Stop processing for "undeliverable" & "risky"
     if (action === 'undeliverable' || action === 'risky') {
@@ -116,7 +128,7 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({
         email: email,
-        dataFields: { source: leadsource }
+        dataFields: { source: utm_source }
       })
     });
 
@@ -135,7 +147,7 @@ exports.handler = async function(event, context) {
         body: JSON.stringify({
           email: email,
           listId: ITERABLE_LIST_ID,
-          dataFields: { source: leadsource }
+          dataFields: { source: utm_source }
         })
       });
     }
@@ -149,9 +161,9 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({
         email: email,
-        eventName: "welcome_email_trigger",  // Custom event to restart workflow
+        eventName: "welcome_email_trigger",
         dataFields: {
-          source: leadsource,
+          source: utm_source,
           timestamp: new Date().toISOString()
         }
       })
@@ -161,7 +173,7 @@ exports.handler = async function(event, context) {
     await sendToWebhooks(email);
 
     // ✅ Step 8: Redirect the user to the Free Reports page
-    const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&leadsource=${encodeURIComponent(leadsource)}`;
+    const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&utm_source=${encodeURIComponent(utm_source)}`;
     return {
       statusCode: 302, // HTTP Redirect
       headers: { "Location": redirectUrl },
