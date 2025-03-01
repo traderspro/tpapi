@@ -15,7 +15,7 @@ const TSI_WEBHOOK_URL = 'https://pro.khmtrk01.com/ZmeHh5?email=';
 const SPREADSHEET_ID = '1syVupXmoT69HFoKtNq_d68hDhP-l2WGQEETc172WPfY';
 
 // Allowed UTM Sources
-const VALID_UTM_SOURCES = ['GoogleAds', 'FacebookAds', 'Newsletter', 'TestSource'];
+const VALID_UTM_SOURCES = ['META', 'SMARTREC', 'GOOG1S', 'YOUTUBE'];
 
 // Initialize Google Sheets API client
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS);
