@@ -68,9 +68,10 @@ exports.handler = async function(event, context) {
       return { statusCode: 429, body: JSON.stringify({ error: "Too many requests, slow down." }) };
     }
 
-    // ✅ Step 1: Get the email & utm_source from request
+    // ✅ Step 1: Get the email, utm_source, and siteid from request
     const email = event.queryStringParameters?.email;
-    const utm_source = event.queryStringParameters?.utm_source;
+    let utm_source = event.queryStringParameters?.utm_source;
+    const siteid = event.queryStringParameters?.siteid;
 
     if (!email) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing email parameter' }) };
@@ -79,12 +80,17 @@ exports.handler = async function(event, context) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing utm_source parameter' }) };
     }
 
-    // ✅ Validate UTM Source
-    if (!VALID_UTM_SOURCES.includes(utm_source)) {
+    // ✅ Combine UTM Source and SiteID if provided
+    if (siteid) {
+      utm_source = `${utm_source}${siteid}`;
+    }
+
+    // ✅ Validate UTM Source (allow pre-defined sources OR sources starting with "AO")
+    if (!VALID_UTM_SOURCES.includes(utm_source) && !utm_source.startsWith("AO")) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Invalid utm_source value' }) };
     }
 
-    console.log(`Verifying email: ${email} | UTM Source: ${utm_source}`);
+    console.log(`Verifying email: ${email} | Final UTM Source: ${utm_source}`);
     console.log(`Using Bouncer API Key: ${BOUNCER_API_KEY ? "Set" : "Not Set"}`);
 
     // ✅ Step 2: Verify the email with Bouncer API
@@ -152,31 +158,11 @@ exports.handler = async function(event, context) {
       });
     }
 
-    // ✅ Step 6: Trigger Custom Event to Restart Workflow
-    await fetch("https://api.iterable.com/api/events/track", {
-      method: "POST",
-      headers: {
-        "Api-Key": ITERABLE_API_KEY,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: email,
-        eventName: "welcome_email_trigger",
-        dataFields: {
-          source: utm_source,
-          timestamp: new Date().toISOString()
-        }
-      })
-    });
-
-    // ✅ Step 7: Send the email to both PTR and TSI Webhooks
+    // ✅ Step 6: Send the email to both PTR and TSI Webhooks
     await sendToWebhooks(email);
 
-    // ✅ Step 8: Redirect the user to the Free Reports page
-    const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&utm_source=${encodeURIComponent(utm_source)}`;
     return {
-      statusCode: 302, // HTTP Redirect
-      headers: { "Location": redirectUrl },
+      statusCode: 200,
       body: JSON.stringify({ success: true, action: action })
     };
 
