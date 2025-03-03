@@ -158,7 +158,28 @@ exports.handler = async function(event, context) {
       });
     }
 
-    // ✅ Step 6: Send the email to both PTR and TSI Webhooks
+    // ✅ Step 6: Trigger Custom Event to Restart Workflow
+    const eventResponse = await fetch("https://api.iterable.com/api/events/track", {
+      method: "POST",
+      headers: {
+        "Api-Key": ITERABLE_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email,
+        eventName: "welcome_email_trigger",
+        dataFields: {
+          source: utm_source,
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
+
+    // Log Iterable's response
+    const eventData = await eventResponse.json();
+    console.log("Iterable Event Response:", eventData);
+
+    // ✅ Step 7: Send the email to both PTR and TSI Webhooks
     await sendToWebhooks(email);
 
     return {
