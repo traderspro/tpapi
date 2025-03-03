@@ -175,15 +175,14 @@ exports.handler = async function(event, context) {
       })
     });
 
-    // Log Iterable's response
-    const eventData = await eventResponse.json();
-    console.log("Iterable Event Response:", eventData);
-
     // ✅ Step 7: Send the email to both PTR and TSI Webhooks
     await sendToWebhooks(email);
 
+    // ✅ Step 8: Redirect the user to Free Reports page
+    const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&utm_source=${encodeURIComponent(utm_source)}`;
     return {
-      statusCode: 200,
+      statusCode: 302,
+      headers: { "Location": redirectUrl },
       body: JSON.stringify({ success: true, action: action })
     };
 
