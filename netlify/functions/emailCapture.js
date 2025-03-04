@@ -153,7 +153,7 @@ exports.handler = async function(event, context) {
     });
 
     // ✅ Step 8: Redirect Instantly
-    const redirectUrl = `https://traderspro.nicepage.io/FreeReports?email=${encodeURIComponent(email)}&utm_source=${encodeURIComponent(utm_source)}`;
+    const redirectUrl = `https://go.traderspro.com/FreeReports?email=${encodeURIComponent(email)}&utm_source=${encodeURIComponent(utm_source)}`;
     return {
       statusCode: 302, // Redirect
       headers: { "Location": redirectUrl },
